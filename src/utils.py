@@ -72,3 +72,20 @@ def evaluate_models(X_train, y_train, X_test, y_test, models,params):
         return report
     except Exception as e:
         raise CustomException(e, sys)
+def load_object(file_path):
+        """    Load an object from a file using pickle. 
+        Parameters:
+        - file_path (str): The path from where the object will be loaded.
+
+        Returns:
+        - obj: The loaded object.
+        Raises:
+        - CustomException: If there is an error during loading the object.
+        """
+        try:
+            with open(file_path, 'rb') as file:
+                obj = pickle.load(file)
+            logging.info(f"Object loaded from {file_path}")
+            return obj
+        except Exception as e:
+            raise CustomException(e, sys)
