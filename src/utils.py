@@ -3,6 +3,8 @@ import sys
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
+
+from sklearn.model_selection import GridSearchCV
 from src.exception import CustomException
 from src.logger import logging
 #import dill
@@ -29,7 +31,7 @@ def save_object(file_path, obj):
     except Exception as e:
         raise CustomException(e, sys)
 
-def evaluate_models(X_train, y_train, X_test, y_test, models):
+def evaluate_models(X_train, y_train, X_test, y_test, models,params):
     """
     Evaluate multiple regression models and return their performance metrics.
     
@@ -49,20 +51,24 @@ def evaluate_models(X_train, y_train, X_test, y_test, models):
     try:
         report = {}
         for model_name, model in models.items():
-            model.fit(X_train, y_train)
-            
-            # Training predictions
-            y_train_pred = model.predict(X_train)
-            
-            # Testing predictions
-            y_test_pred = model.predict(X_test)
-            
-            # Calculate scores
-            train_model_score = r2_score(y_train, y_train_pred)
-            test_model_score = r2_score(y_test, y_test_pred)
-            
-            report[model_name] = test_model_score
-            
+            try:
+                # Get parameters if available, otherwise use empty dict
+                model_params = params.get(model_name, {})
+                
+                if model_params:  # Only do GridSearch if parameters are provided
+                    gs = GridSearchCV(model, model_params, cv=3)
+                    gs.fit(X_train, y_train)
+                    model.set_params(**gs.best_params_)
+                
+                model.fit(X_train, y_train)
+                y_test_pred = model.predict(X_test)
+                test_model_score = r2_score(y_test, y_test_pred)
+                report[model_name] = test_model_score
+                
+            except Exception as e:
+                logging.warning(f"Error evaluating {model_name}: {str(e)}")
+                report[model_name] = None
+                
         return report
     except Exception as e:
         raise CustomException(e, sys)
